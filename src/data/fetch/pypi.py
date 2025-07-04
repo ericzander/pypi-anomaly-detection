@@ -1,13 +1,24 @@
 import re
 import requests
+from bs4 import BeautifulSoup
 
-def fetch_dependencies_from_pypi(pkg_name):
+def fetch_package_names_pypi(timeout=20):
+    """Returns a list of ALL package names from the PyPI simple list."""
+    resp = requests.get("https://pypi.org/simple/", timeout=timeout)
+    soup = BeautifulSoup(resp.text, "html.parser")
+    return [a.text for a in soup.find_all("a")]
+
+def fetch_dependencies_pypi(pkg_name) -> list[dict]:
+    """Returns list of dicts matching the format of the Libraries.io API response."""
     try:
         res = requests.get(f"https://pypi.org/pypi/{pkg_name}/json", timeout=5)
         if res.status_code != 200:
             return []
 
         raw_deps = res.json().get("info", {}).get("requires_dist", [])
+        if raw_deps is None:
+            return []
+        
         deps = []
 
         for dep in raw_deps:

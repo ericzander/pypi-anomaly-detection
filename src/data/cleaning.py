@@ -1,12 +1,4 @@
-import os
 import re
-import json
-import argparse
-
-from data.fetch_librariesio import fetch_metadata_librariesio
-from data.fetch_pypi import enrich_with_pypi
-
-DATA_DIR = "data/raw"
 
 def clean_metadata(meta: dict) -> dict:
     def extract_runtime_dependencies(raw_deps):
@@ -55,38 +47,3 @@ def clean_metadata(meta: dict) -> dict:
     meta.pop("dependencies", None)
 
     return meta
-
-def ensure_dir(path):
-    """Ensure the directory at 'path' exists."""
-    os.makedirs(path, exist_ok=True)
-
-def main(package_list, use_pypi_fallback):
-    """Download metadata for each package, using PyPI as fallback if specified."""
-    ensure_dir(DATA_DIR)
-
-    for pkg in package_list:
-        print(f"Fetching {pkg}...")
-        data = fetch_metadata_librariesio(pkg)
-
-        if not data and use_pypi_fallback:
-            print("Libraries.io failed. Trying PyPI fallback...")
-            data = enrich_with_pypi(pkg)
-
-        if data:
-            data = clean_metadata(data)
-
-            out_path = os.path.join(DATA_DIR, f"{pkg}.json")
-            with open(out_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2)
-        else:
-            print(f"Failed to fetch {pkg} from all sources.")
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Download PyPI package metadata.")
-    parser.add_argument("--packages", nargs="+", required=True,
-                        help="List of package names")
-    parser.add_argument("--use-pypi-fallback", action="store_true",
-                        help="Use PyPI if Libraries.io fails")
-
-    args = parser.parse_args()
-    main(args.packages, args.use_pypi_fallback)
