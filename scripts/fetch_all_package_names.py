@@ -3,7 +3,7 @@ from pathlib import Path
 from data.fetch.pypi import fetch_package_names_pypi
 
 PAGES = 2
-OUTPUT_FILE = Path("data/raw/package_names.txt")
+OUTPUT_FILE = Path("data/all_package_names.txt")
 
 def save_package_list(pkg_names, path):
     path.parent.mkdir(parents=True, exist_ok=True)

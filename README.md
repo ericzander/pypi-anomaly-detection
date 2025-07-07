@@ -6,6 +6,7 @@ Model the PyPI dependency network as a graph. Use self-supervised Graph Neural N
 ## Data
 * Package metadata: [Libraries.io](https://libraries.io/)
 * Unfound dependencies: [PyPI JSON API](https://docs.pypi.org/api/json/)
+* Package download/usage: [PyPI Download Statistics (BigQuery)](https://docs.pypi.org/api/bigquery/)
 
 ## Tools
 - Graph Construction: NetworkX/PyG
