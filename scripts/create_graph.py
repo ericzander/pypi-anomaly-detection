@@ -37,9 +37,11 @@ def build_dependency_graph(metadata_dict):
 
         # Handle optional dependencies
         for dep_entry in meta.get("optional_dependencies", []):
+            kind = "unspecified"
+
             # Handle extras like "dev:pybind11"
             if ":" in dep_entry:
-                _, dep_name = dep_entry.split(":", 1)
+                kind, dep_name = dep_entry.split(":", 1)
             else:
                 dep_name = dep_entry
             dep_name = dep_name.lower().strip()
@@ -47,7 +49,7 @@ def build_dependency_graph(metadata_dict):
             if not dep_name:
                 continue
             G.add_node(dep_name)
-            G.add_edge(pkg_name, dep_name, kind="optional", optional=True)
+            G.add_edge(pkg_name, dep_name, kind=kind, optional=True)
 
     return G
 
