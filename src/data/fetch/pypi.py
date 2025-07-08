@@ -9,7 +9,11 @@ def fetch_package_names_pypi(timeout=20):
     return [a.text for a in soup.find_all("a")]
 
 def fetch_dependencies_pypi(pkg_name) -> list[dict]:
-    """Returns list of dicts matching the format of the Libraries.io API response."""
+    """Returns list of dicts matching the format of the Libraries.io API response.
+    
+    When unreported in setup.py or pyproject.toml, some optional dependencies may be
+    missing for project with extra configurations (such as the deprecated gym[atari]).
+    """
     try:
         res = requests.get(f"https://pypi.org/pypi/{pkg_name}/json", timeout=5)
         if res.status_code != 200:
