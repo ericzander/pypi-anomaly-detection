@@ -64,7 +64,7 @@ def main():
     )
     args = parser.parse_args()
 
-    list_path = Path(args.package_list_file)
+    list_path = Path(args.filepath)
     if not list_path.exists():
         raise FileNotFoundError(f"{list_path} does not exist")
 
