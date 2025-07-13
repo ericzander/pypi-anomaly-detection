@@ -13,6 +13,17 @@ def get_top_pypi_packages(n=200, days=7):
     """
     return [row.name for row in client.query(query).result()]
 
+def get_recent_pypi_packages(n=200):
+    """Fetch the most recently first-uploaded PyPI projects."""
+    client = bigquery.Client()
+    query = f"""
+        SELECT name, MAX(upload_time) AS last_seen
+        FROM `bigquery-public-data.pypi.distribution_metadata`
+        GROUP BY name ORDER BY last_seen DESC
+        LIMIT {n}
+    """
+    return [row.name for row in client.query(query).result()]
+
 def save_package_list(packages, path, n, days):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     output = {
