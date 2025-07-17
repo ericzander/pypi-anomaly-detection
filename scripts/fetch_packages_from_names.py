@@ -27,6 +27,31 @@ def load_package_names(path):
         content = json.load(f)
         return content.get("packages", [])
 
+def collect_dependency_names(metadata_dir: Path, core_packages: list[str]) -> set[str]:
+    deps = set()
+
+    for name in core_packages:
+        file_path = metadata_dir / f"{name}.json"
+        if not file_path.exists():
+            continue
+        try:
+            with open(file_path, encoding="utf-8") as f:
+                data = json.load(f)
+        except json.JSONDecodeError:
+            continue
+
+        for dep in data.get("runtime_dependencies", []):
+            deps.add(dep.lower())
+
+        for entry in data.get("optional_dependencies", []):
+            if ":" in entry:
+                _, dep = entry.split(":", 1)
+            else:
+                dep = entry
+            deps.add(dep.lower().strip())
+
+    return deps - set(core_packages)
+
 def already_fetched(pkg_name):
     return (DATA_DIR / f"{pkg_name}.json").exists()
 
@@ -73,8 +98,18 @@ def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     package_names = load_package_names(list_path)
 
-    for pkg in tqdm(package_names, ncols=80):
+    # Fetch core package metadata
+    for pkg in tqdm(package_names, desc="Core", ncols=80):
         fetch_and_save(pkg)
+    
+    # Collect dependency names
+    dependency_names = collect_dependency_names(DATA_DIR, package_names)
+    print(f"\nFound {len(dependency_names)} unique direct dependencies to fetch...")
+
+    # Fetch dependency metadata
+    for dep in tqdm(sorted(dependency_names), desc="Dependencies", ncols=80):
+        fetch_and_save(dep)
+
 
 if __name__ == "__main__":
     main()
