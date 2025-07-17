@@ -35,6 +35,8 @@ def fetch_and_save(pkg_name):
     if already_fetched(pkg_name):
         print(f"Skipping {pkg_name} (already collected)")
         return
+    
+    time.sleep(3)
 
     meta = fetch_metadata_librariesio(pkg_name, API_KEY)
     if not meta:
@@ -73,7 +75,6 @@ def main():
 
     for pkg in tqdm(package_names, ncols=80):
         fetch_and_save(pkg)
-        time.sleep(3)
 
 if __name__ == "__main__":
     main()

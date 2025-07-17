@@ -24,13 +24,13 @@ if not cred or not Path(cred).exists():
 
 def main(mode: str, n: int, days: int):
     if mode == "top":
-        print(f"Fetching top {n} packages over the last {days} days...")
+        print(f"Fetching top {n} package names over the last {days} days...")
         packages = get_top_pypi_packages(n=n, days=days)
-        save_package_list(packages, TOP_FILE, n=n, days=days)
+        save_package_list(packages, TOP_FILE, mode=mode,n=n, days=days)
     elif mode == "recent":
-        print(f"Fetching {n} most recently uploaded packages...")
+        print(f"Fetching {n} most recently uploaded packages names...")
         packages = get_recent_pypi_packages(n=n)
-        save_package_list(packages, RECENT_FILE, n=n, days=None)
+        save_package_list(packages, RECENT_FILE, mode=mode, n=n, days=None)
     else:
         raise ValueError("Mode must be 'top' or 'recent'")
 

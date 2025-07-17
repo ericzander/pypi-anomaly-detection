@@ -1,6 +1,6 @@
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from google.cloud import bigquery
 
 def get_top_pypi_packages(n=200, days=7):
@@ -24,12 +24,13 @@ def get_recent_pypi_packages(n=200):
     """
     return [row.name for row in client.query(query).result()]
 
-def save_package_list(packages, path, n, days):
+def save_package_list(packages, path, mode, n, days):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     output = {
-        "date": datetime.utcnow().isoformat() + "Z",
+        "date": datetime.now(timezone.utc).isoformat() + "Z",
         "num_packages": n,
         "days": days,
+        "mode": mode,
         "packages": packages
     }
     with open(path, "w", encoding="utf-8") as f:
