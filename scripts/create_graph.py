@@ -77,11 +77,10 @@ def make_output_name(meta: dict | None) -> str:
     
     mode = meta.get("mode", "unknown")
     n = meta.get("num_packages", len(meta.get("packages", [])))
-    days = meta.get("days")
     date = meta.get("date", datetime.now(timezone.utc).isoformat())
     date_short = datetime.fromisoformat(date.rstrip("Z")).strftime("%Y%m%d")
 
-    return f"graph_{mode}_n{n}_days{days}_{date_short}"
+    return f"graph_{mode}_n{n}_{date_short}"
 
 def save_graph(G, name):
     os.makedirs(GRAPH_DIR, exist_ok=True)

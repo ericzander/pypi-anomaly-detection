@@ -14,7 +14,7 @@ TOP_FILE = OUTPUT_DIR / "top_package_names.json"
 RECENT_FILE = OUTPUT_DIR / "recent_package_names.json"
 
 DEFAULT_N = 200
-DEFAULT_DAYS = 2
+DEFAULT_DAYS = 30
 
 load_dotenv()
 
