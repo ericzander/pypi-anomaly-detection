@@ -9,7 +9,6 @@ import networkx as nx
 RAW_DATA_DIR = Path("data/raw/packages")
 GRAPH_DIR = Path("data/graph")
 
-
 def load_package_list(file: Path):
     """Load the top-levelmetadata JSON containing package list."""
     with open(file, encoding="utf-8") as f:
@@ -44,18 +43,62 @@ def load_all_metadata():
             print(f"Warning: Failed to decode {file}")
     return all_data
 
+def add_node_with_metadata(G, pkg_name, meta):
+    """Helper function to add a node with metadata to the graph."""
+    license = meta.get("normalized_licenses", ["Unknown"])[0] if meta.get("normalized_licenses") else "Unknown"
+
+    # Determine if any critical metadata is missing
+    missing_metadata = (
+        meta.get("rank") is None or
+        meta.get("stars") is None or
+        meta.get("forks") is None or
+        meta.get("normalized_licenses") is None
+    )
+
+    G.add_node(pkg_name,
+               rank=meta.get("rank", 0),
+               stars=meta.get("stars", 0),
+               forks=meta.get("forks", 0),
+               license=license,
+               latest_release=meta.get("latest_release_published_at", "Unknown"),
+               num_optional_deps=len(meta.get("optional_dependencies", [])),
+               has_repo=bool(meta.get("repository_url")),
+               has_funding=bool(meta.get("funding_urls")),
+               num_keywords=len(meta.get("keywords", [])),
+               missing_metadata=missing_metadata,
+    )
+
+def get_metadata(name, all_data):
+    """Retrieve metadata for a package, loading it if necessary."""
+    if name not in all_data:
+        file_path = RAW_DATA_DIR / f"{name}.json"
+        if file_path.exists():
+            try:
+                with open(file_path, encoding="utf-8") as f:
+                    data = json.load(f)
+                    all_data[name] = data
+            except json.JSONDecodeError:
+                print(f"Warning: Failed to decode {file_path}")
+    return all_data.get(name, {})
+
+
 def build_dependency_graph(metadata_dict):
     G = nx.DiGraph()
+    all_data = metadata_dict.copy()
 
     for pkg_name, meta in metadata_dict.items():
-        G.add_node(pkg_name)
+        # Add main package node with metadata
+        add_node_with_metadata(G, pkg_name, meta)
 
+        # Add nodes and edges for runtime dependencies
         for dep_name in meta.get("runtime_dependencies", []):
             dep_name = dep_name.lower()
             if dep_name:
-                G.add_node(dep_name)
+                dep_meta = get_metadata(dep_name, all_data)
+                add_node_with_metadata(G, dep_name, dep_meta)
                 G.add_edge(pkg_name, dep_name, kind="runtime", optional=False)
 
+        # Add nodes and edges for optional dependencies
         for dep_entry in meta.get("optional_dependencies", []):
             kind = "unspecified"
             if ":" in dep_entry:
@@ -64,7 +107,8 @@ def build_dependency_graph(metadata_dict):
                 dep_name = dep_entry
             dep_name = dep_name.lower().strip()
             if dep_name:
-                G.add_node(dep_name)
+                dep_meta = get_metadata(dep_name, all_data)
+                add_node_with_metadata(G, dep_name, dep_meta)
                 G.add_edge(pkg_name, dep_name, kind=kind, optional=True)
 
     return G
