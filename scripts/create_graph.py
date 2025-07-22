@@ -45,10 +45,9 @@ def load_metadata(package_names: list[str] = None) -> dict:
 
     return all_data
 
-def add_node_with_metadata(G: nx.DiGraph, pkg_name: str, meta: dict, is_core: bool = False):
+def add_node_with_metadata(G: nx.DiGraph, pkg_name: str, meta: dict, is_core: bool = False, repo_url_count: dict = None):
     """Helper function to add a node with metadata to the graph."""
-    license = meta.get("normalized_licenses", ["Unknown"])[
-        0] if meta.get("normalized_licenses") else "Unknown"
+    license = meta.get("normalized_licenses", ["Unknown"])[0] if meta.get("normalized_licenses") else "Unknown"
     missing_metadata = (
         meta.get("rank") is None or
         meta.get("stars") is None or
@@ -56,16 +55,23 @@ def add_node_with_metadata(G: nx.DiGraph, pkg_name: str, meta: dict, is_core: bo
         meta.get("normalized_licenses") is None
     )
 
+    repo_url = meta.get("repository_url", "Unknown")
+    if not repo_url:  # Check for empty string
+        repo_url = "Unknown"
+
+    # Count occurrences of each repo_url only for core nodes
+    if is_core and repo_url_count is not None:
+        repo_url_count[repo_url] = repo_url_count.get(repo_url, 0) + 1
+
     G.add_node(pkg_name,
                SourceRank=meta.get("rank", 0),
                stars=meta.get("stars", 0),
                forks=meta.get("forks", 0),
                license=license,
-               latest_release=meta.get(
-                   "latest_release_published_at", "Unknown"),
+               latest_release=meta.get("latest_release_published_at", "Unknown"),
                num_optional_deps=len(meta.get("optional_dependencies", [])),
-               repo_url=meta.get("repository_url", "Unknown"),
-               has_repo=bool(meta.get("repository_url")),
+               repo_url=repo_url,
+               has_repo=bool(repo_url and repo_url != "Unknown"),
                has_funding=bool(meta.get("funding_urls")),
                num_keywords=len(meta.get("keywords", [])),
                missing_metadata=missing_metadata,
@@ -86,11 +92,11 @@ def add_node_with_metadata(G: nx.DiGraph, pkg_name: str, meta: dict, is_core: bo
                contributors=meta.get("contributors", 0),
                subscribers=meta.get("subscribers", 0),
                all_prereleases=meta.get("all_prereleases", 0),
-               any_outdated_dependencies=meta.get(
-                   "any_outdated_dependencies", 0),
+               any_outdated_dependencies=meta.get("any_outdated_dependencies", 0),
                is_deprecated=meta.get("is_deprecated", 0),
                is_unmaintained=meta.get("is_unmaintained", 0),
                is_removed=meta.get("is_removed", 0),
+               is_copycat=False  # Default to False
                )
 
 def get_metadata(name: str, all_data: dict) -> dict:
@@ -111,10 +117,15 @@ def build_dependency_graph(metadata_dict: dict) -> nx.DiGraph:
     G = nx.DiGraph()
     all_data = metadata_dict.copy()
     core_packages = set(metadata_dict.keys())
+    repo_url_count = {}
 
+    # First pass to add core nodes and count repo_url occurrences
     for pkg_name, meta in metadata_dict.items():
-        add_node_with_metadata(G, pkg_name, meta, is_core=True)
+        add_node_with_metadata(G, pkg_name, meta, is_core=True, repo_url_count=repo_url_count)
 
+    # Second pass to add dependencies
+    for pkg_name, meta in metadata_dict.items():
+        # Add edges for runtime dependencies
         for dep_name in meta.get("runtime_dependencies", []):
             dep_name = dep_name.lower()
             if dep_name:
@@ -123,6 +134,7 @@ def build_dependency_graph(metadata_dict: dict) -> nx.DiGraph:
                     G, dep_name, dep_meta, is_core=(dep_name in core_packages))
                 G.add_edge(pkg_name, dep_name, kind="runtime", optional=False)
 
+        # Add edges for optional dependencies
         for dep_entry in meta.get("optional_dependencies", []):
             kind = "unspecified"
             if ":" in dep_entry:
@@ -135,6 +147,12 @@ def build_dependency_graph(metadata_dict: dict) -> nx.DiGraph:
                 add_node_with_metadata(
                     G, dep_name, dep_meta, is_core=(dep_name in core_packages))
                 G.add_edge(pkg_name, dep_name, kind=kind, optional=True)
+
+    # Set is_copycat attribute
+    for pkg_name in G.nodes:
+        repo_url = G.nodes[pkg_name]['repo_url']
+        if repo_url != "Unknown" and repo_url_count.get(repo_url, 0) > 1:
+            G.nodes[pkg_name]['is_copycat'] = True
 
     G.graph["num_core_packages"] = len(core_packages)
     return G
