@@ -112,6 +112,11 @@ def main():
         action="store_true",
         help="Overwrite existing package metadata files if they exist."
     )
+    parser.add_argument(
+        "--skip-dependencies",
+        action="store_true",
+        help="Do not fetch metadata for direct dependencies."
+    )
     args = parser.parse_args()
 
     list_path = Path(args.filepath)
@@ -127,15 +132,16 @@ def main():
         fetch_and_save_metadata(pkg, args.overwrite)
         fetch_and_save_sourcerank(pkg, args.overwrite)
 
-    # Collect dependency names
-    dependency_names = collect_dependency_names(DATA_DIR_PKG, package_names)
-    print(
-        f"\nFound {len(dependency_names)} unique direct dependencies to fetch...")
+    if not args.skip_dependencies:
+        # Collect dependency names
+        dependency_names = collect_dependency_names(DATA_DIR_PKG, package_names)
+        print(
+            f"\nFound {len(dependency_names)} unique direct dependencies to fetch...")
 
-    # Fetch dependency metadata
-    for dep in tqdm(sorted(dependency_names), desc="Dependencies", ncols=80):
-        fetch_and_save_metadata(dep, args.overwrite)
-        fetch_and_save_sourcerank(dep, args.overwrite)
+        # Fetch dependency metadata
+        for dep in tqdm(sorted(dependency_names), desc="Dependencies", ncols=80):
+            fetch_and_save_metadata(dep, args.overwrite)
+            fetch_and_save_sourcerank(dep, args.overwrite)
 
 if __name__ == "__main__":
     main()

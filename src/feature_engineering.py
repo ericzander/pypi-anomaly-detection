@@ -1,3 +1,4 @@
+import networkx as nx
 from networkx.algorithms.community import greedy_modularity_communities
 
 def compute_inter_intra_ratios(G, feature_name="inter_intra_ratio"):
@@ -20,7 +21,34 @@ def compute_inter_intra_ratios(G, feature_name="inter_intra_ratio"):
 
     return G
 
-def add_features(G):
-    G = compute_inter_intra_ratios(G)
+def compute_clustering_coefficient(G, feature_name="clustering_coefficient"):
+    clustering = nx.clustering(G)
+    for node, value in clustering.items():
+        G.nodes[node][feature_name] = value
+    return G
 
+def compute_degree_centrality(G, feature_name="degree_centrality"):
+    degree = nx.degree_centrality(G)
+    for node, value in degree.items():
+        G.nodes[node][feature_name] = value
+    return G
+
+def compute_betweenness_centrality(G, feature_name="betweenness_centrality"):
+    betweenness = nx.betweenness_centrality(G)
+    for node, value in betweenness.items():
+        G.nodes[node][feature_name] = value
+    return G
+
+def compute_closeness_centrality(G, feature_name="closeness_centrality"):
+    closeness = nx.closeness_centrality(G)
+    for node, value in closeness.items():
+        G.nodes[node][feature_name] = value
+    return G
+
+def add_structural_features(G):
+    G = compute_inter_intra_ratios(G)
+    G = compute_clustering_coefficient(G)
+    G = compute_betweenness_centrality(G)
+    G = compute_degree_centrality(G)
+    G = compute_closeness_centrality(G)
     return G

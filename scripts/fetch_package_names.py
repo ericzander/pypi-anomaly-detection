@@ -13,8 +13,8 @@ OUTPUT_DIR = Path("data")
 TOP_FILE = OUTPUT_DIR / "top_package_names.json"
 RECENT_FILE = OUTPUT_DIR / "recent_package_names.json"
 
-DEFAULT_N = 200
-DEFAULT_DAYS = 30
+DEFAULT_N = 500
+DEFAULT_DAYS = 7
 
 load_dotenv()
 

@@ -4,6 +4,7 @@ import pickle
 import argparse
 from pathlib import Path
 from datetime import datetime, timezone
+
 import networkx as nx
 
 RAW_DATA_DIR = Path("data/raw/packages")
@@ -40,7 +41,7 @@ def load_metadata(package_names: list[str] = None) -> dict:
             if "stars" in sourcerank_data:
                 sourcerank_data["stars_sr"] = sourcerank_data.pop("stars")
             data.update(sourcerank_data)
-            data['sourcerank_missing'] = (sourcerank_data == {})
+            data["sourcerank_missing"] = (sourcerank_data == {})
             all_data[name] = data
 
     return all_data
@@ -150,9 +151,9 @@ def build_dependency_graph(metadata_dict: dict) -> nx.DiGraph:
 
     # Set is_copycat attribute
     for pkg_name in G.nodes:
-        repo_url = G.nodes[pkg_name]['repo_url']
+        repo_url = G.nodes[pkg_name]["repo_url"]
         if repo_url != "Unknown" and repo_url_count.get(repo_url, 0) > 1:
-            G.nodes[pkg_name]['is_copycat'] = True
+            G.nodes[pkg_name]["is_copycat"] = True
 
     G.graph["num_core_packages"] = len(core_packages)
     return G
