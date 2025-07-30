@@ -76,7 +76,7 @@ def add_node_with_metadata(G: nx.DiGraph, pkg_name: str, meta: dict, is_core: bo
                has_funding=bool(meta.get("funding_urls")),
                num_keywords=len(meta.get("keywords", [])),
                missing_metadata=missing_metadata,
-               core=is_core,
+               is_core=is_core,
                sourcerank_missing=meta.get('sourcerank_missing', True),
                # Add SourceRank data
                basic_info_present=meta.get("basic_info_present", 0),
