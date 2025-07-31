@@ -22,3 +22,9 @@ Data is sourced as follows:
 - GNNs: GraphSAGE/DGI/GCN
 - Anomaly Detection: Outlier scores from embeddings or structure
 - Visualization: PCA/t-SNE, Streamlit/website?
+
+## Acknowledgements
+
+This project includes images courtesy of the scikit-learn developers. These images are used under the BSD 3-Clause License. For more information, see [`assets/sklearn/LICENSE_BSD.txt`](assets/sklearn/LICENSE_BSD.txt).
+
+The rest of the project is licensed under the MIT License.

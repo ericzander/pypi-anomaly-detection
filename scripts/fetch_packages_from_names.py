@@ -6,7 +6,7 @@ from pathlib import Path
 from tqdm import tqdm
 from dotenv import load_dotenv
 
-from data.fetch.librariesio import fetch_metadata_librariesio
+from data.fetch.librariesio import fetch_metadata_librariesio, fetch_sourcerank_info_librariesio
 from data.fetch.pypi import fetch_dependencies_pypi
 from data.cleaning import clean_metadata
 
@@ -16,7 +16,8 @@ API_KEY = os.getenv("LIBRARIESIO_API_KEY")
 if not API_KEY:
     raise ValueError("LIBRARIESIO_API_KEY is not set in the environment.")
 
-DATA_DIR = Path("data/raw/packages")
+DATA_DIR_PKG = Path("data/raw/packages")
+DATA_DIR_SR = Path("data/raw/sourcerank")
 
 def save_json(data, path):
     with open(path, "w", encoding="utf-8") as f:
@@ -52,16 +53,13 @@ def collect_dependency_names(metadata_dir: Path, core_packages: list[str]) -> se
 
     return deps - set(core_packages)
 
-def already_fetched(pkg_name):
-    return (DATA_DIR / f"{pkg_name}.json").exists()
-
-def fetch_and_save(pkg_name):
+def fetch_and_save_metadata(pkg_name, overwrite=False, sleep_time=1.5):
     print(f"Fetching {pkg_name}...")
-    if already_fetched(pkg_name):
+    if not overwrite and (DATA_DIR_PKG / f"{pkg_name}.json").exists():
         print(f"Skipping {pkg_name} (already collected)")
         return
-    
-    time.sleep(3)
+
+    time.sleep(sleep_time)
 
     meta = fetch_metadata_librariesio(pkg_name, API_KEY)
     if not meta:
@@ -76,18 +74,48 @@ def fetch_and_save(pkg_name):
 
     try:
         clean = clean_metadata(meta)
-        save_json(clean, DATA_DIR / f"{pkg_name}.json")
+        save_json(clean, DATA_DIR_PKG / f"{pkg_name}.json")
         print(f"Saved {pkg_name}")
     except Exception as e:
         print(f"Cleaning failed for {pkg_name}: {e}")
 
+def fetch_and_save_sourcerank(pkg_name, overwrite=False, sleep_time=1.5):
+    print(f"Fetching SourceRank for {pkg_name}...")
+    sourcerank_path = DATA_DIR_SR / f"{pkg_name}_sourcerank.json"
+    if not overwrite and sourcerank_path.exists():
+        print(f"Skipping SourceRank for {pkg_name} (already collected)")
+        return
+
+    time.sleep(sleep_time)
+
+    try:
+        sourcerank_info = fetch_sourcerank_info_librariesio(pkg_name, API_KEY)
+        if sourcerank_info:
+            save_json(sourcerank_info, sourcerank_path)
+            print(f"Saved SourceRank for {pkg_name}")
+        else:
+            print(f"Failed to fetch SourceRank for {pkg_name}")
+    except Exception as e:
+        print(f"Error fetching SourceRank for {pkg_name}: {e}")
+
 def main():
-    parser = argparse.ArgumentParser(description="Fetch metadata for a list of packages.")
+    parser = argparse.ArgumentParser(
+        description="Fetch metadata for a list of packages.")
     parser.add_argument(
         "--filepath",
         type=str,
         required=True,
         help="Path to the JSON file containing the package list (e.g. top_package_names.json or recent_package_names.json)"
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing package metadata files if they exist."
+    )
+    parser.add_argument(
+        "--skip-dependencies",
+        action="store_true",
+        help="Do not fetch metadata for direct dependencies."
     )
     args = parser.parse_args()
 
@@ -95,21 +123,25 @@ def main():
     if not list_path.exists():
         raise FileNotFoundError(f"{list_path} does not exist")
 
-    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(DATA_DIR_PKG, exist_ok=True)
+    os.makedirs(DATA_DIR_SR, exist_ok=True)
     package_names = load_package_names(list_path)
 
-    # Fetch core package metadata
+    # Fetch core package metadata and SourceRank info
     for pkg in tqdm(package_names, desc="Core", ncols=80):
-        fetch_and_save(pkg)
-    
-    # Collect dependency names
-    dependency_names = collect_dependency_names(DATA_DIR, package_names)
-    print(f"\nFound {len(dependency_names)} unique direct dependencies to fetch...")
+        fetch_and_save_metadata(pkg, args.overwrite)
+        fetch_and_save_sourcerank(pkg, args.overwrite)
 
-    # Fetch dependency metadata
-    for dep in tqdm(sorted(dependency_names), desc="Dependencies", ncols=80):
-        fetch_and_save(dep)
+    if not args.skip_dependencies:
+        # Collect dependency names
+        dependency_names = collect_dependency_names(DATA_DIR_PKG, package_names)
+        print(
+            f"\nFound {len(dependency_names)} unique direct dependencies to fetch...")
 
+        # Fetch dependency metadata
+        for dep in tqdm(sorted(dependency_names), desc="Dependencies", ncols=80):
+            fetch_and_save_metadata(dep, args.overwrite)
+            fetch_and_save_sourcerank(dep, args.overwrite)
 
 if __name__ == "__main__":
     main()

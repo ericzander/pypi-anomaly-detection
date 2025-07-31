@@ -1,0 +1,8 @@
+{
+  "packages": [
+    "invoicing-pdf99",
+    "sicar",
+    "thds-termtool",
+    "yandex-robotics-trt-inference-cuda"
+  ]
+}
